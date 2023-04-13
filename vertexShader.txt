@@ -34,11 +34,11 @@ VS_OUTPUT Main( in float4 vPosition : POSITION )
 	
 	// Change the y of the vertex position based on a function of time 
 	// and transform the vertex into projection space. 
-    Output.Position = float4( vPosition.x, vPosition.y, vPosition.z, 1.0f );
+    Output.Position = mul(float4( vPosition.x, vPosition.y, vPosition.z, 1.0f ), mWorldViewProj);
     
     // Output the diffuse color as function of time and 
     // the vertex's object space position
-    Output.Diffuse = float4(0.5f, 0.5f, 0.5f, 1.0f);
+    Output.Diffuse = float4(vPosition.x, vPosition.y, vPosition.z, 1.0f);
     
     return Output;
 }

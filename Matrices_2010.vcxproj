@@ -382,6 +382,7 @@
     <ResourceCompile Include="Matrices.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="pixelShader.txt" />
     <Text Include="vertexShader.txt" />
   </ItemGroup>
   <ItemGroup>
