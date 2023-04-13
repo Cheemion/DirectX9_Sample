@@ -40,6 +40,8 @@ LPDIRECT3D9                  g_pD3D = NULL; // Used to create the D3DDevice
 LPDIRECT3DDEVICE9            g_pd3dDevice = NULL; // Our rendering device
 IDirect3DVertexDeclaration9* g_pDecl = 0;
 ID3DXConstantTable*          g_constTable = 0;
+ID3DXBuffer*                 g_pixelShaderBuffer = 0;
+IDirect3DPixelShader9*       g_pixelShader = 0;
 ID3DXBuffer*                 g_vertexShaderBuffer = 0;
 IDirect3DVertexShader9*      g_vertexShader = 0;
 ID3DXBuffer*                 g_errorBuffer = 0;
@@ -134,6 +136,10 @@ HRESULT Init()
     }
     /* Create D3DVertex Declaration */
 
+    /* Create Pixel Shader */
+    hr = D3DXCompileShaderFromFile(L"pixelShader.txt", NULL, NULL, "Main", "ps_2_0", D3DXSHADER_DEBUG, &g_pixelShaderBuffer, &g_errorBuffer, &g_constTable);
+    hr = g_pd3dDevice->CreatePixelShader((DWORD*)g_pixelShaderBuffer->GetBufferPointer(), &g_pixelShader);
+    /* Create Pixel Shader */
 
     /* Create Vertex Shader */
     hr = D3DXCompileShaderFromFile(L"vertexShader.txt", NULL, NULL, "Main", "vs_2_0", D3DXSHADER_DEBUG, &g_vertexShaderBuffer, &g_errorBuffer, &g_constTable);
@@ -142,7 +148,6 @@ HRESULT Init()
 
     /*create Vertex Buffer And Index Buffer*/
     hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_WRITEONLY, Vertex::FVF, D3DPOOL_MANAGED, &g_vertexBuffer, 0);
-
     hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &g_indexBuffer, 0);
     /*create Vertex Buffer And Index Buffer*/
 
@@ -232,6 +237,7 @@ VOID Render()
     g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 
     hr = g_pd3dDevice->SetVertexShader(g_vertexShader);
+    hr = g_pd3dDevice->SetPixelShader(g_pixelShader);
 
 
     D3DXHANDLE h = g_constTable->GetConstantByName(0, "mWorldViewProj");

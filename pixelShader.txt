@@ -1,0 +1,24 @@
+struct PS_INPUT
+{
+    float4 Position   : POSITION;   // vertex position 
+    float4 Diffuse    : COLOR0;     // vertex diffuse color
+};
+
+struct PS_OUTPUT
+{
+    vector Diffuse : COLOR0;
+};
+
+//-----------------------------------------------------------------------------
+// Name: Ripple
+// Type: Vertex shader                                      
+// Desc: This shader ripples the vertices
+//-----------------------------------------------------------------------------
+PS_OUTPUT Main(PS_INPUT input)
+{
+    PS_OUTPUT output;
+    output.Diffuse = float4(input.Diffuse.x, input.Diffuse.y, input.Diffuse.z, 1.0f);
+    return output;
+}
+
+
