@@ -1,0 +1,46 @@
+//-----------------------------------------------------------------------------
+// File: HLSLwithoutEffects.vsh
+//
+// Desc: The effect file for the BasicHLSL sample.  It contains a vertex 
+//		 shader which animates the vertices.
+// 
+// Copyright (c) Microsoft Corporation. All rights reserved.
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
+// Global variables
+//-----------------------------------------------------------------------------
+float4x4 mWorldViewProj;  // World * View * Projection transformation
+
+//-----------------------------------------------------------------------------
+// Vertex shader output structure
+//-----------------------------------------------------------------------------
+struct VS_OUTPUT
+{
+    float4 Position   : POSITION;   // vertex position 
+    float4 Diffuse    : COLOR0;     // vertex diffuse color
+};
+
+
+//-----------------------------------------------------------------------------
+// Name: Ripple
+// Type: Vertex shader                                      
+// Desc: This shader ripples the vertices
+//-----------------------------------------------------------------------------
+VS_OUTPUT Main( in float4 vPosition : POSITION )
+{
+	VS_OUTPUT Output;
+	
+	// Change the y of the vertex position based on a function of time 
+	// and transform the vertex into projection space. 
+    Output.Position = float4( vPosition.x, vPosition.y, vPosition.z, 1.0f );
+    
+    // Output the diffuse color as function of time and 
+    // the vertex's object space position
+    Output.Diffuse = float4(0.5f, 0.5f, 0.5f, 1.0f);
+    
+    return Output;
+}
+
+
