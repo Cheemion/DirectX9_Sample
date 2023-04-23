@@ -108,6 +108,7 @@ HRESULT InitD3D( HWND hWnd )
                                       D3DCREATE_HARDWARE_VERTEXPROCESSING,
                                       &d3dpp, &g_pd3dDevice ) ) )
     {
+        LONG rer = g_pd3dDevice->Release();
         return E_FAIL;
     }
 
@@ -147,8 +148,8 @@ HRESULT Init()
     /* Create Vertex Shader */
 
     /*create Vertex Buffer And Index Buffer*/
-    hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_WRITEONLY, Vertex::FVF, D3DPOOL_MANAGED, &g_vertexBuffer, 0);
-    hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &g_indexBuffer, 0);
+    hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_DYNAMIC, Vertex::FVF, D3DPOOL_DEFAULT, &g_vertexBuffer, 0);
+    hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &g_indexBuffer, 0);
     /*create Vertex Buffer And Index Buffer*/
 
     return S_OK;
@@ -234,7 +235,6 @@ VOID Render()
         1.0f,
         1000.0f);
 
-    g_pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 
     hr = g_pd3dDevice->SetVertexShader(g_vertexShader);
     hr = g_pd3dDevice->SetPixelShader(g_pixelShader);
@@ -245,7 +245,7 @@ VOID Render()
     g_constTable->SetMatrix(g_pd3dDevice, h, (const D3DXMATRIX*)&temp);
 
     // Clear the backbuffer to a black color
-    g_pd3dDevice->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xffffffff, 1.0f, 0);
+    g_pd3dDevice->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xfabfffff, 1.0f, 0);
 
     // Begin the scene
     if( SUCCEEDED( g_pd3dDevice->BeginScene() ) )
@@ -261,7 +261,7 @@ VOID Render()
     g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
 }
 
-
+#define SAFE_RELEASE(A) { if (A != nullptr) A->Release(); A = nullptr;}
 
 
 //-----------------------------------------------------------------------------
@@ -270,12 +270,17 @@ VOID Render()
 //-----------------------------------------------------------------------------
 VOID Cleanup()
 {
-
-    if( g_pd3dDevice != NULL )
-        g_pd3dDevice->Release();
-
-    if( g_pD3D != NULL )
-        g_pD3D->Release();
+    SAFE_RELEASE(g_pDecl);
+    SAFE_RELEASE(g_constTable);
+    SAFE_RELEASE(g_pixelShaderBuffer);
+    SAFE_RELEASE(g_pixelShader);
+    SAFE_RELEASE(g_vertexShaderBuffer);
+    SAFE_RELEASE(g_vertexShader);
+    SAFE_RELEASE(g_errorBuffer);
+    SAFE_RELEASE(g_vertexBuffer);
+    SAFE_RELEASE(g_indexBuffer);
+    SAFE_RELEASE(g_pd3dDevice);
+    SAFE_RELEASE(g_pD3D);
 }
 
 
