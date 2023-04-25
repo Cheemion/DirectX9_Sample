@@ -31,6 +31,7 @@
 #pragma warning( default : 4996 )
 
 
+#define SAFE_RELEASE(A) { if (A != nullptr) A->Release(); A = nullptr;}
 
 
 //-----------------------------------------------------------------------------
@@ -47,6 +48,7 @@ IDirect3DVertexShader9*      g_vertexShader = 0;
 ID3DXBuffer*                 g_errorBuffer = 0;
 IDirect3DVertexBuffer9*      g_vertexBuffer = 0;
 IDirect3DIndexBuffer9*       g_indexBuffer = 0;
+IDirect3DTexture9*           g_texture = 0;
 const static int             WIDTH = 640;
 const static int             HEIGHT = 480;
 
@@ -54,16 +56,17 @@ const static int             HEIGHT = 480;
 struct Vertex
 {
     Vertex() {}
-    Vertex(float x, float y, float z)
+    Vertex(
+        float x, float y, float z, float w,
+        float u, float v)
     {
-        _x = x;  _y = y;  _z = z;
+        _x = x;  _y = y;  _z = z, _w = w;
+        _u = u;  _v = v;
     }
-    float _x, _y, _z;
-    D3DCOLOR _color;
-    static const DWORD FVF;
+    float _x, _y, _z, _w;
+    float _u, _v; // texture coordinates
 };
-const DWORD Vertex::FVF = D3DFVF_XYZ;
-
+#define FVF_VERTEX (D3DFVF_XYZ | D3DFVF_TEX1)
 
 // A structure for our custom vertex type
 struct CUSTOMVERTEX
@@ -128,7 +131,8 @@ HRESULT Init()
     /* Create D3DVertex Declaration */
     D3DVERTEXELEMENT9 decl[] =
     {
-        {0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
+        {0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0},
+        {0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0},
         D3DDECL_END()
     };
     if (FAILED(g_pd3dDevice->CreateVertexDeclaration(decl, &g_pDecl))) 
@@ -148,9 +152,24 @@ HRESULT Init()
     /* Create Vertex Shader */
 
     /*create Vertex Buffer And Index Buffer*/
-    hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_DYNAMIC, Vertex::FVF, D3DPOOL_DEFAULT, &g_vertexBuffer, 0);
+    /*
     hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &g_indexBuffer, 0);
+    */
+
+    //hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_WRITEONLY, Vertex::FVF, D3DPOOL_MANAGED, &g_vertexBuffer, 0);
+    //D3DPOOL_SYSTEMMEM
+    //hr = g_pd3dDevice->CreateVertexBuffer( 8 * sizeof(Vertex), D3DUSAGE_WRITEONLY, Vertex::FVF, D3DPOOL_SYSTEMMEM, &g_vertexBuffer, 0);
+    //hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM, &g_indexBuffer, 0);
+    hr = g_pd3dDevice->CreateVertexBuffer(8 * sizeof(Vertex), D3DUSAGE_WRITEONLY, FVF_VERTEX, D3DPOOL_MANAGED, &g_vertexBuffer, 0);
+    hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &g_indexBuffer, 0);
     /*create Vertex Buffer And Index Buffer*/
+
+    hr = D3DXCreateTextureFromFile(g_pd3dDevice, L"crate.jpg", &g_texture);
+    hr = g_pd3dDevice->SetTexture(0, g_texture);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+    //D3DXCreateTexture();
 
     return S_OK;
 }
@@ -167,18 +186,19 @@ VOID Render()
     Vertex* vertices;
     g_vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
     // vertices of a unit cube
-    vertices[0] = Vertex(-1.0f, -1.0f, -1.0f);
-    vertices[1] = Vertex(-1.0f, 1.0f, -1.0f);
-    vertices[2] = Vertex(1.0f, 1.0f, -1.0f);
-    vertices[3] = Vertex(1.0f, -1.0f, -1.0f);
-    vertices[4] = Vertex(-1.0f, -1.0f, 1.0f);
-    vertices[5] = Vertex(-1.0f, 1.0f, 1.0f);
-    vertices[6] = Vertex(1.0f, 1.0f, 1.0f);
-    vertices[7] = Vertex(1.0f, -1.0f, 1.0f);
+    vertices[0] = Vertex(-1.0f, -1.0f, -1.0f, 1.0f,0.0f, 0.0f);
+    vertices[1] = Vertex(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f);
+    vertices[2] = Vertex(1.0f, 1.0f, -1.0f , 1.0f, 1.0f, 1.0f);
+    vertices[3] = Vertex(1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 0.0f);
+    vertices[4] = Vertex(-1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+    vertices[5] = Vertex(-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f);
+    vertices[6] = Vertex(1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    vertices[7] = Vertex(1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     g_vertexBuffer->Unlock();
     /* Fill the vertex buffer.  */
 
-
+    
+    
     /* Fill the index buffer.  */
     WORD* indices = 0;
     g_indexBuffer->Lock(0, 0, (void**)&indices, 0);
@@ -239,13 +259,17 @@ VOID Render()
     hr = g_pd3dDevice->SetVertexShader(g_vertexShader);
     hr = g_pd3dDevice->SetPixelShader(g_pixelShader);
 
-
     D3DXHANDLE h = g_constTable->GetConstantByName(0, "mWorldViewProj");
     D3DXMATRIXA16 temp = world * V * proj;
     g_constTable->SetMatrix(g_pd3dDevice, h, (const D3DXMATRIX*)&temp);
 
     // Clear the backbuffer to a black color
     g_pd3dDevice->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xfabfffff, 1.0f, 0);
+
+    hr = g_pd3dDevice->SetTexture(0, g_texture);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 
     // Begin the scene
     if( SUCCEEDED( g_pd3dDevice->BeginScene() ) )
@@ -261,7 +285,6 @@ VOID Render()
     g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
 }
 
-#define SAFE_RELEASE(A) { if (A != nullptr) A->Release(); A = nullptr;}
 
 
 //-----------------------------------------------------------------------------
@@ -278,6 +301,7 @@ VOID Cleanup()
     SAFE_RELEASE(g_vertexShader);
     SAFE_RELEASE(g_errorBuffer);
     SAFE_RELEASE(g_vertexBuffer);
+    SAFE_RELEASE(g_texture);
     SAFE_RELEASE(g_indexBuffer);
     SAFE_RELEASE(g_pd3dDevice);
     SAFE_RELEASE(g_pD3D);

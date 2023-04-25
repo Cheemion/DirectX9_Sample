@@ -20,26 +20,32 @@ struct VS_OUTPUT
 {
     float4 Position   : POSITION;   // vertex position 
     float4 Diffuse    : COLOR0;     // vertex diffuse color
+    float2 Texture    : TEXCOORD0;
 };
 
+struct VS_INPUT
+{
+    float4 Position   : POSITION;   // vertex position 
+    float2 Texture    : TEXCOORD0;
+};
 
 //-----------------------------------------------------------------------------
 // Name: Ripple
 // Type: Vertex shader                                      
 // Desc: This shader ripples the vertices
 //-----------------------------------------------------------------------------
-VS_OUTPUT Main( in float4 vPosition : POSITION )
+VS_OUTPUT Main( VS_INPUT input)
 {
 	VS_OUTPUT Output;
 	
 	// Change the y of the vertex position based on a function of time 
 	// and transform the vertex into projection space. 
-    Output.Position = mul(float4( vPosition.x, vPosition.y, vPosition.z, 1.0f ), mWorldViewProj);
+    Output.Position = mul(float4( input.Position.x, input.Position.y, input.Position.z, 1.0f ), mWorldViewProj);
     
     // Output the diffuse color as function of time and 
     // the vertex's object space position
-    Output.Diffuse = float4(vPosition.x, vPosition.y, vPosition.z, 1.0f);
-    
+    Output.Diffuse = float4(input.Position.x, input.Position.y, input.Position.z, 1.0f);
+    Output.Texture = float2(input.Texture.x, input.Texture.y);
     return Output;
 }
 

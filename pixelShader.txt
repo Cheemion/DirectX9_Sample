@@ -1,8 +1,12 @@
+sampler FirstSampler;
+
 struct PS_INPUT
 {
     float4 Position   : POSITION;   // vertex position 
     float4 Diffuse    : COLOR0;     // vertex diffuse color
+    float2 Texture    : TEXCOORD0;
 };
+
 
 struct PS_OUTPUT
 {
@@ -17,7 +21,8 @@ struct PS_OUTPUT
 PS_OUTPUT Main(PS_INPUT input)
 {
     PS_OUTPUT output;
-    output.Diffuse = float4(input.Diffuse.x, input.Diffuse.y, input.Diffuse.z, 1.0f);
+    //output.Diffuse = float4(input.Diffuse.x, input.Diffuse.y, input.Diffuse.z, 1.0f);
+    output.Diffuse = tex2D(FirstSampler, input.Texture);
     return output;
 }
 
