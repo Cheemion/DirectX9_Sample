@@ -49,6 +49,8 @@ ID3DXBuffer*                 g_errorBuffer = 0;
 IDirect3DVertexBuffer9*      g_vertexBuffer = 0;
 IDirect3DIndexBuffer9*       g_indexBuffer = 0;
 IDirect3DTexture9*           g_texture = 0;
+IDirect3DTexture9*           g_texture1 = 0;
+IDirect3DTexture9*           g_texture2 = 0;
 const static int             WIDTH = 640;
 const static int             HEIGHT = 480;
 
@@ -164,8 +166,28 @@ HRESULT Init()
     hr = g_pd3dDevice->CreateIndexBuffer( 36 * sizeof(WORD), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &g_indexBuffer, 0);
     /*create Vertex Buffer And Index Buffer*/
 
+    hr = g_pd3dDevice->CreateTexture(256, 256, 1, 0/*D3DUSAGE_AUTOGENMIPMAP*/, D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &g_texture1, nullptr);
     hr = D3DXCreateTextureFromFile(g_pd3dDevice, L"crate.jpg", &g_texture);
-    hr = g_pd3dDevice->SetTexture(0, g_texture);
+    
+    D3DLOCKED_RECT rect;
+    hr = g_texture->LockRect(0, &rect, 0, 0);
+    D3DLOCKED_RECT rect1;
+    hr = g_texture1->LockRect(0, &rect1, 0, 0);
+    
+    memcpy(rect1.pBits, rect.pBits, 262144);
+    hr = g_texture->UnlockRect(0);
+    hr = g_texture1->UnlockRect(0);
+
+
+
+    hr = g_pd3dDevice->CreateTexture(256, 256, 0, D3DUSAGE_AUTOGENMIPMAP, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &g_texture2, nullptr);
+    
+    hr = g_pd3dDevice->UpdateTexture(g_texture1, g_texture2);
+
+    hr = g_pd3dDevice->SetTexture(0, g_texture2);
+    //hr = g_texture1->AddDirtyRect(0);
+    //hr = g_pd3dDevice->UpdateTexture(g_texture, g_texture1);
+    //hr = g_pd3dDevice->CreateTexture(256, 256, 0, )
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
@@ -266,7 +288,7 @@ VOID Render()
     // Clear the backbuffer to a black color
     g_pd3dDevice->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xfabfffff, 1.0f, 0);
 
-    hr = g_pd3dDevice->SetTexture(0, g_texture);
+    hr = g_pd3dDevice->SetTexture(0, g_texture2);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
@@ -302,6 +324,8 @@ VOID Cleanup()
     SAFE_RELEASE(g_errorBuffer);
     SAFE_RELEASE(g_vertexBuffer);
     SAFE_RELEASE(g_texture);
+    SAFE_RELEASE(g_texture1);
+    SAFE_RELEASE(g_texture2);
     SAFE_RELEASE(g_indexBuffer);
     SAFE_RELEASE(g_pd3dDevice);
     SAFE_RELEASE(g_pD3D);
