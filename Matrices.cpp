@@ -51,6 +51,10 @@ IDirect3DIndexBuffer9*       g_indexBuffer = 0;
 IDirect3DTexture9*           g_texture = 0;
 IDirect3DTexture9*           g_texture1 = 0;
 IDirect3DTexture9*           g_texture2 = 0;
+IDirect3DSurface9*           g_renderTarget = 0;
+IDirect3DSurface9*           g_zBuffer = 0;
+IDirect3DSwapChain9* g_swapChain = 0;
+IDirect3DSurface9* g_backBuffer = 0;
 const static int             WIDTH = 640;
 const static int             HEIGHT = 480;
 
@@ -96,7 +100,7 @@ HRESULT InitD3D( HWND hWnd )
     d3dpp.BackBufferWidth = WIDTH;
     d3dpp.BackBufferHeight = HEIGHT;
     d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
-    d3dpp.BackBufferCount = 1;
+    d3dpp.BackBufferCount = 2;
     d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
     d3dpp.MultiSampleQuality = 0;
     d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
@@ -170,10 +174,16 @@ HRESULT Init()
     hr = D3DXCreateTextureFromFile(g_pd3dDevice, L"crate.jpg", &g_texture);
     
     D3DLOCKED_RECT rect;
+
+    RECT            region;
+    region.left = 0;
+    region.right = 100;
+    region.top = 0;
+    region.bottom = 100;
+    hr = g_texture->LockRect(0, &rect, 0, 0);
     hr = g_texture->LockRect(0, &rect, 0, 0);
     D3DLOCKED_RECT rect1;
     hr = g_texture1->LockRect(0, &rect1, 0, 0);
-    
     memcpy(rect1.pBits, rect.pBits, 262144);
     hr = g_texture->UnlockRect(0);
     hr = g_texture1->UnlockRect(0);
@@ -181,7 +191,8 @@ HRESULT Init()
 
 
     hr = g_pd3dDevice->CreateTexture(256, 256, 0, D3DUSAGE_AUTOGENMIPMAP, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &g_texture2, nullptr);
-    
+    //g_pd3dDevice->CreateRenderTarget();
+    //g_pd3dDevice->CreateDepthStencilSurface();
     hr = g_pd3dDevice->UpdateTexture(g_texture1, g_texture2);
 
     hr = g_pd3dDevice->SetTexture(0, g_texture2);
@@ -191,8 +202,16 @@ HRESULT Init()
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
     hr = g_pd3dDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
-    //D3DXCreateTexture();
 
+    hr = g_pd3dDevice->CreateRenderTarget(WIDTH, HEIGHT, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, false, &g_renderTarget, 0);
+    hr = g_pd3dDevice->SetRenderTarget(0, g_renderTarget);
+    hr = g_pd3dDevice->CreateDepthStencilSurface(WIDTH, HEIGHT, D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0, false, &g_zBuffer, 0);
+    hr = g_pd3dDevice->SetDepthStencilSurface(g_zBuffer);
+    
+
+    hr = g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &g_backBuffer);
+    hr = g_pd3dDevice->GetSwapChain(0, &g_swapChain);
+    //D3DXCreateTexture();
     return S_OK;
 }
 
@@ -206,7 +225,8 @@ VOID Render()
 
     /* Fill the vertex buffer.  */
     Vertex* vertices;
-    g_vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
+    hr = g_vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
+    hr = g_vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
     // vertices of a unit cube
     vertices[0] = Vertex(-1.0f, -1.0f, -1.0f, 1.0f,0.0f, 0.0f);
     vertices[1] = Vertex(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f);
@@ -252,15 +272,15 @@ VOID Render()
     g_indexBuffer->Unlock();
 
     /* apply mvp transformational matrix */
-	D3DXMATRIX world;
-	// incremement y-rotation angle each frame
-	static float y = 0.0f;
-	D3DXMatrixRotationY(&world, y);
-	y += 0.0001;
+    D3DXMATRIX world;
+    // incremement y-rotation angle each frame
+    static float y = 0.0f;
+    D3DXMatrixRotationY(&world, y);
+    y += 0.0001;
 
-	// reset angle to zero when angle reaches 2*PI
-	if (y >= 6.28f)
-		y = 0.0f;
+    // reset angle to zero when angle reaches 2*PI
+    if (y >= 6.28f)
+        y = 0.0f;
 
     D3DXVECTOR3 position(0.0f, 0.0f, -5.0f);
     D3DXVECTOR3 target(0.0f, 0.0f, 0.0f);
@@ -285,6 +305,8 @@ VOID Render()
     D3DXMATRIXA16 temp = world * V * proj;
     g_constTable->SetMatrix(g_pd3dDevice, h, (const D3DXMATRIX*)&temp);
 
+    hr = g_pd3dDevice->SetRenderTarget(0, g_renderTarget);
+    hr = g_pd3dDevice->SetDepthStencilSurface(g_zBuffer);
     // Clear the backbuffer to a black color
     g_pd3dDevice->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xfabfffff, 1.0f, 0);
 
@@ -298,13 +320,33 @@ VOID Render()
     {
         hr = g_pd3dDevice->SetStreamSource( 0, g_vertexBuffer, 0, sizeof( Vertex ) );
         hr = g_pd3dDevice->SetIndices( g_indexBuffer );
-		hr = g_pd3dDevice->SetVertexDeclaration(g_pDecl);
+        hr = g_pd3dDevice->SetVertexDeclaration(g_pDecl);
         g_pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 12);
         // End the scene
         g_pd3dDevice->EndScene();
     }
+    hr = g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &g_backBuffer);
+    hr = g_pd3dDevice->StretchRect(g_renderTarget, 0, g_backBuffer, 0, D3DTEXF_NONE);
+    /*
+    D3DSURFACE_DESC renderTargetDesc;
+    D3DSURFACE_DESC backBufferDesc;
+    hr = g_renderTarget->GetDesc(&renderTargetDesc);
+    hr = g_backBuffer->GetDesc(&backBufferDesc);
+    hr = g_pd3dDevice->UpdateSurface(g_renderTarget, 0, g_backBuffer, 0);
+    hr = g_pd3dDevice->GetRenderTargetData(g_renderTarget, g_backBuffer);
+
+    D3DLOCKED_RECT rect;
+    hr = g_renderTarget->LockRect(&rect,0, 0);
+
+    g_swapChain->
+    
+    D3DLOCKED_RECT rect1;
+    g_backBuffer->GetPrivateData
+    hr = g_backBuffer->LockRect(&rect1,0, 0);
+    */
+    
     // Present the backbuffer contents to the display
-    g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
+    hr = g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
 }
 
 
