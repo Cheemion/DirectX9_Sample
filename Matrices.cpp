@@ -211,6 +211,7 @@ HRESULT Init()
 
     hr = g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &g_backBuffer);
     hr = g_pd3dDevice->GetSwapChain(0, &g_swapChain);
+
     //D3DXCreateTexture();
     return S_OK;
 }
@@ -325,7 +326,6 @@ VOID Render()
         // End the scene
         g_pd3dDevice->EndScene();
     }
-    hr = g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &g_backBuffer);
     hr = g_pd3dDevice->StretchRect(g_renderTarget, 0, g_backBuffer, 0, D3DTEXF_NONE);
     /*
     D3DSURFACE_DESC renderTargetDesc;
@@ -371,6 +371,8 @@ VOID Cleanup()
     SAFE_RELEASE(g_indexBuffer);
     SAFE_RELEASE(g_pd3dDevice);
     SAFE_RELEASE(g_pD3D);
+
+
 }
 
 
